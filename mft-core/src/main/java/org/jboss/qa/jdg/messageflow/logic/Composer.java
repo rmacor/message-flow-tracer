@@ -271,7 +271,15 @@ public class Composer extends Logic {
                      continue;
                   }
 
-                  long eventTime = Long.valueOf(parts[1]);
+                   //In case of number format exception, the trace is thrown away
+                   long eventTime;
+                   try{
+                       eventTime = Long.valueOf(parts[1]);
+                   }catch (NumberFormatException e){
+                       System.err.println("Invalid number " + parts[1] + " this trace was thrown away");
+                       return;
+                   }
+
                   String threadName = parts[2];
                   String type = parts[3];
                   String text = parts.length > 4 ? parts[4].trim() : null;
