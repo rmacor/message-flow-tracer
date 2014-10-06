@@ -1,7 +1,7 @@
 ##########
 # TP/UDP #
 ##########
-
+###TRANSFORMERED FOR JGROUPS 3.5
 RULE incomingDataUDP
 CLASS org.jgroups.protocols.UDP$PacketReceiver
 METHOD run
@@ -21,10 +21,10 @@ IF TRUE
 DO
   discardMessages(org.jboss.qa.jdg.messageflow.MessageIdentifier33.getDataIdentifiers($1));
 ENDRULE
-
-RULE dispatchData
+### replacing dispatchData rule with dispatchDataBatch and dispatchDataSingleMessage
+RULE dispatchDataBatch
 CLASS org.jgroups.protocols.TP
-METHOD receive
+METHOD handleMessageBatch
 HELPER org.jboss.qa.jdg.messageflow.Tracer
 AT INVOKE java.util.concurrent.Executor.execute ALL
 IF TRUE
@@ -32,9 +32,19 @@ DO
   forkSpan();
 ENDRULE
 
-RULE dataDispatched
+RULE dispatchDataSingleMessage
 CLASS org.jgroups.protocols.TP
-METHOD receive
+METHOD handleSingleMessage
+HELPER org.jboss.qa.jdg.messageflow.Tracer
+AT INVOKE java.util.concurrent.Executor.execute ALL
+IF TRUE
+DO
+  forkSpan();
+ENDRULE
+### replacing dataDispatched rule with dataDispatchedBatch and dataDispatchedSingleMessage
+RULE dataDispatchedBatch
+CLASS org.jgroups.protocols.TP
+METHOD handleMessageBatch
 HELPER org.jboss.qa.jdg.messageflow.Tracer
 AFTER INVOKE java.util.concurrent.Executor.execute ALL
 IF TRUE
@@ -42,9 +52,19 @@ DO
   unforkSpan();
 ENDRULE
 
-RULE incomingDispatched
+RULE dataDispatchedSingleMessage
 CLASS org.jgroups.protocols.TP
-METHOD receive
+METHOD handleSingleMessage
+HELPER org.jboss.qa.jdg.messageflow.Tracer
+AFTER INVOKE java.util.concurrent.Executor.execute ALL
+IF TRUE
+DO
+  unforkSpan();
+ENDRULE
+###
+RULE incomingDispatchedBatch
+CLASS org.jgroups.protocols.TP
+METHOD handleMessageBatch
 HELPER org.jboss.qa.jdg.messageflow.Tracer
 AT EXIT
 IF TRUE
@@ -52,6 +72,17 @@ DO
   threadProcessingCompleted();
 ENDRULE
 
+RULE incomingDispatchedSingleMessage
+CLASS org.jgroups.protocols.TP
+METHOD handleSingleMessage
+HELPER org.jboss.qa.jdg.messageflow.Tracer
+AT EXIT
+IF TRUE
+DO
+  threadProcessingCompleted();
+ENDRULE
+
+###
 RULE dataProcessingSingle
 CLASS org.jgroups.protocols.TP$MyHandler
 METHOD run
@@ -72,16 +103,28 @@ DO
   forkSpan();
   handlingMessage(org.jboss.qa.jdg.messageflow.MessageIdentifier33.getMessageIdentifier($0.msg));
 ENDRULE
-
-RULE messageHandlingFinishedBatchNotEnabled
-CLASS org.jgroups.protocols.TP$BatchHandler
-METHOD handleMyMessage
+### Not applied even in the old version
+### Modified to two rules
+RULE messageHandlingFinishedBatchNotEnabledSingleMessage
+CLASS org.jgroups.protocols.TP$SingleMessageHandler
+METHOD run
 HELPER org.jboss.qa.jdg.messageflow.Tracer
 AFTER INVOKE org.jgroups.protocols.TP.passMessageUp
 IF TRUE
 DO
   unforkSpan();
 ENDRULE
+
+RULE messageHandlingFinishedBatchNotEnabledBatch
+CLASS org.jgroups.protocols.TP$MyHandler
+METHOD run
+HELPER org.jboss.qa.jdg.messageflow.Tracer
+AFTER INVOKE org.jgroups.protocols.TP.passMessageUp
+IF TRUE
+DO
+  unforkSpan();
+ENDRULE
+
 
 RULE batchProcessingStart
 CLASS org.jgroups.protocols.TP$BatchHandler
@@ -156,7 +199,7 @@ IF TRUE
 DO
   batchPush(org.jboss.qa.jdg.messageflow.MessageIdentifier33.getMessageIdentifier($msg));
 ENDRULE
-
+###done
 RULE batchedMessageProcessingReceive
 CLASS org.jgroups.JChannel
 METHOD up(org.jgroups.util.MessageBatch)
@@ -237,11 +280,13 @@ ENDRULE
 # UNICAST* #
 ############
 
+
+###Look for better way to inject this
 RULE UNICAST2_NonCausal
 CLASS org.jgroups.protocols.UNICAST2
 METHOD up(org.jgroups.Event)
 HELPER org.jboss.qa.jdg.messageflow.Tracer
-AT LINE 413
+AT LINE 418
 IF $hdr.type != 0 && $hdr.type != 4
 DO
   setNonCausal();
@@ -331,7 +376,7 @@ ENDRULE
 
 RULE UNICAST3_BatchedOOBUpStart
 CLASS org.jgroups.protocols.UNICAST3
-METHOD handleBatchReceived
+METHOD deliverBatch
 HELPER org.jboss.qa.jdg.messageflow.Tracer
 AT INVOKE org.jgroups.stack.Protocol.up
 IF TRUE
@@ -341,7 +386,7 @@ ENDRULE
 
 RULE UNICAST3_BatchedOOBUpFinished
 CLASS org.jgroups.protocols.UNICAST3
-METHOD handleBatchReceived
+METHOD deliverBatch
 HELPER org.jboss.qa.jdg.messageflow.Tracer
 AFTER INVOKE org.jgroups.stack.Protocol.up
 IF TRUE
@@ -375,7 +420,7 @@ ENDRULE
 
 RULE NAKACK2_PassedUpBatch
 CLASS org.jgroups.protocols.pbcast.NAKACK2
-METHOD removeAndPassUp
+METHOD deliverBatch
 HELPER org.jboss.qa.jdg.messageflow.Tracer
 AFTER INVOKE org.jgroups.stack.Protocol.up(org.jgroups.util.MessageBatch) ALL
 IF TRUE
@@ -427,6 +472,7 @@ DO
   msgTag("RSP_" + getMark($0.completed));
 ENDRULE
 
+### Not applied even in the old version 
 RULE RequestFinalized
 CLASS org.jgroups.blocks.Request
 METHOD finalize
@@ -445,7 +491,7 @@ RULE Discovery
 CLASS org.jgroups.protocols.Discovery
 METHOD up
 HELPER org.jboss.qa.jdg.messageflow.Tracer
-AT LINE 383
+AT LINE 285
 IF TRUE
 DO
   msgTag("Discovery");
@@ -459,7 +505,7 @@ RULE FD_SOCK
 CLASS org.jgroups.protocols.FD_SOCK
 METHOD up
 HELPER org.jboss.qa.jdg.messageflow.Tracer
-AT LINE 206
+AT LINE 223
 IF TRUE
 DO
   msgTag("FD");
@@ -469,7 +515,7 @@ RULE FD_ALL
 CLASS org.jgroups.protocols.FD_ALL
 METHOD up
 HELPER org.jboss.qa.jdg.messageflow.Tracer
-AT LINE 171
+AT LINE 187
 IF TRUE
 DO
   msgTag("FD");
@@ -483,7 +529,7 @@ RULE VERIFY_SUSPECT
 CLASS org.jgroups.protocols.VERIFY_SUSPECT
 METHOD up
 HELPER org.jboss.qa.jdg.messageflow.Tracer
-AT LINE 115
+AT LINE 123
 IF TRUE
 DO
   msgTag("VERIFY");
@@ -497,7 +543,7 @@ RULE FlowControl_Request
 CLASS org.jgroups.protocols.FlowControl
 METHOD handleUpEvent
 HELPER org.jboss.qa.jdg.messageflow.Tracer
-AT LINE 415
+AT LINE 401
 IF TRUE
 DO
   msgTag("FC_Request");
@@ -507,7 +553,7 @@ RULE FlowControl_Replenish
 CLASS org.jgroups.protocols.FlowControl
 METHOD handleUpEvent
 HELPER org.jboss.qa.jdg.messageflow.Tracer
-AT LINE 411
+AT LINE 397
 IF TRUE
 DO
   msgTag("FC_Replenish");
@@ -562,7 +608,7 @@ RULE RSVP_ReqOnly
 CLASS org.jgroups.protocols.RSVP
 METHOD up
 HELPER org.jboss.qa.jdg.messageflow.Tracer
-AT LINE 175
+AT LINE 178
 IF TRUE
 DO
   msgTag("RSVP_ReqOnly");
@@ -572,7 +618,7 @@ RULE RSVP_Resp
 CLASS org.jgroups.protocols.RSVP
 METHOD up
 HELPER org.jboss.qa.jdg.messageflow.Tracer
-AT LINE 178
+AT LINE 181
 IF TRUE
 DO
   msgTag("RSVP_Resp");
