@@ -1,7 +1,7 @@
 ##########
 # TP/UDP #
 ##########
-
+###TRANSFORMERED FOR JGROUPS 3.5
 RULE incomingDataUDP
 CLASS org.jgroups.protocols.UDP$PacketReceiver
 METHOD run
@@ -19,12 +19,12 @@ HELPER org.jboss.qa.jdg.messageflow.Tracer
 AT ENTRY
 IF TRUE
 DO
-  discardMessages(org.jboss.qa.jdg.messageflow.MessageIdentifier33.getDataIdentifiers($1));
+  discardMessages(org.jboss.qa.jdg.messageflow.MessageIdentifier50.getDataIdentifiers($1));
 ENDRULE
-
-RULE dispatchData
+### replacing dispatchData rule with dispatchDataBatch and dispatchDataSingleMessage
+RULE dispatchDataBatch
 CLASS org.jgroups.protocols.TP
-METHOD receive
+METHOD handleMessageBatch
 HELPER org.jboss.qa.jdg.messageflow.Tracer
 AT INVOKE java.util.concurrent.Executor.execute ALL
 IF TRUE
@@ -32,9 +32,19 @@ DO
   forkSpan();
 ENDRULE
 
-RULE dataDispatched
+RULE dispatchDataSingleMessage
 CLASS org.jgroups.protocols.TP
-METHOD receive
+METHOD handleSingleMessage
+HELPER org.jboss.qa.jdg.messageflow.Tracer
+AT INVOKE java.util.concurrent.Executor.execute ALL
+IF TRUE
+DO
+  forkSpan();
+ENDRULE
+### replacing dataDispatched rule with dataDispatchedBatch and dataDispatchedSingleMessage
+RULE dataDispatchedBatch
+CLASS org.jgroups.protocols.TP
+METHOD handleMessageBatch
 HELPER org.jboss.qa.jdg.messageflow.Tracer
 AFTER INVOKE java.util.concurrent.Executor.execute ALL
 IF TRUE
@@ -42,9 +52,19 @@ DO
   unforkSpan();
 ENDRULE
 
-RULE incomingDispatched
+RULE dataDispatchedSingleMessage
 CLASS org.jgroups.protocols.TP
-METHOD receive
+METHOD handleSingleMessage
+HELPER org.jboss.qa.jdg.messageflow.Tracer
+AFTER INVOKE java.util.concurrent.Executor.execute ALL
+IF TRUE
+DO
+  unforkSpan();
+ENDRULE
+###
+RULE incomingDispatchedBatch
+CLASS org.jgroups.protocols.TP
+METHOD handleMessageBatch
 HELPER org.jboss.qa.jdg.messageflow.Tracer
 AT EXIT
 IF TRUE
@@ -52,6 +72,17 @@ DO
   threadProcessingCompleted();
 ENDRULE
 
+RULE incomingDispatchedSingleMessage
+CLASS org.jgroups.protocols.TP
+METHOD handleSingleMessage
+HELPER org.jboss.qa.jdg.messageflow.Tracer
+AT EXIT
+IF TRUE
+DO
+  threadProcessingCompleted();
+ENDRULE
+
+###
 RULE dataProcessingSingle
 CLASS org.jgroups.protocols.TP$MyHandler
 METHOD run
@@ -59,7 +90,7 @@ HELPER org.jboss.qa.jdg.messageflow.Tracer
 AT INVOKE passMessageUp
 IF TRUE
 DO
-  handlingMessage(org.jboss.qa.jdg.messageflow.MessageIdentifier33.getMessageIdentifier($0.msg));
+  handlingMessage(org.jboss.qa.jdg.messageflow.MessageIdentifier50.getMessageIdentifier($msg));
 ENDRULE
 
 RULE messageHandlingStartedBatchNotEnabled
@@ -70,17 +101,50 @@ AT INVOKE org.jgroups.protocols.TP.passMessageUp
 IF TRUE
 DO
   forkSpan();
-  handlingMessage(org.jboss.qa.jdg.messageflow.MessageIdentifier33.getMessageIdentifier($0.msg));
+  handlingMessage(org.jboss.qa.jdg.messageflow.MessageIdentifier50.getMessageIdentifier($0.msg));
 ENDRULE
-
-RULE messageHandlingFinishedBatchNotEnabled
-CLASS org.jgroups.protocols.TP$BatchHandler
-METHOD handleMyMessage
+### Not applied even in the old version
+### Modified to two rules
+RULE messageHandlingFinishedBatchNotEnabledSingleMessage
+CLASS org.jgroups.protocols.TP$SingleMessageHandler
+METHOD run
 HELPER org.jboss.qa.jdg.messageflow.Tracer
 AFTER INVOKE org.jgroups.protocols.TP.passMessageUp
 IF TRUE
 DO
   unforkSpan();
+ENDRULE
+
+RULE messageHandlingFinishedBatchNotEnabledBatch
+CLASS org.jgroups.protocols.TP$MyHandler
+METHOD run
+HELPER org.jboss.qa.jdg.messageflow.Tracer
+AFTER INVOKE org.jgroups.protocols.TP.passMessageUp
+IF TRUE
+DO
+  unforkSpan();
+ENDRULE
+
+###fix
+RULE batchProcessingStart_Extra
+CLASS org.jgroups.protocols.pbcast.NAKACK2
+METHOD removeAndPassUp
+HELPER org.jboss.qa.jdg.messageflow.Tracer
+AT INVOKE deliverBatch
+IF TRUE
+DO
+  batchProcessingStart(org.jboss.qa.jdg.messageflow.MessageIdentifier50.getMessageIdentifiers($batch));
+ENDRULE
+
+###fix
+RULE batchProcessingEnd_Extra
+CLASS org.jgroups.protocols.pbcast.NAKACK2
+METHOD removeAndPassUp
+HELPER org.jboss.qa.jdg.messageflow.Tracer
+AFTER deliverBatch
+IF TRUE
+DO
+  batchProcessingEnd();
 ENDRULE
 
 RULE batchProcessingStart
@@ -90,7 +154,7 @@ HELPER org.jboss.qa.jdg.messageflow.Tracer
 AT INVOKE org.jgroups.protocols.TP.passBatchUp
 IF TRUE
 DO
-  batchProcessingStart(org.jboss.qa.jdg.messageflow.MessageIdentifier33.getMessageIdentifiers($0.batch));
+  batchProcessingStart(org.jboss.qa.jdg.messageflow.MessageIdentifier50.getMessageIdentifiers($0.batch));
 ENDRULE
 
 RULE batchProcessingEnd
@@ -110,7 +174,7 @@ HELPER org.jboss.qa.jdg.messageflow.Tracer
 AT ENTRY
 IF TRUE
 DO
-  outcomingStarted(org.jboss.qa.jdg.messageflow.MessageIdentifier33.getMessageIdentifier($1));
+  outcomingStarted(org.jboss.qa.jdg.messageflow.MessageIdentifier50.getMessageIdentifier($1));
 ENDRULE
 
 RULE sendMessageEnd
@@ -134,7 +198,7 @@ ENDRULE
 #AT ENTRY
 #IF TRUE
 #DO
-#  checkpoint("EVENT "+ org.jboss.qa.jdg.messageflow.MessageIdentifier33.getEventIdentifier($1))
+#  checkpoint("EVENT "+ org.jboss.qa.jdg.messageflow.MessageIdentifier50.getEventIdentifier($1))
 #ENDRULE
 
 #RULE JChannel_batchUp
@@ -144,7 +208,7 @@ ENDRULE
 #AT ENTRY
 #IF TRUE
 #DO
-#  checkpoint("BATCH " + org.jboss.qa.jdg.messageflow.MessageIdentifier33.getBatchIdentifier($1))
+#  checkpoint("BATCH " + org.jboss.qa.jdg.messageflow.MessageIdentifier50.getBatchIdentifier($1))
 #ENDRULE
 
 RULE batchedMessageProcessingUpHandler
@@ -154,9 +218,9 @@ HELPER org.jboss.qa.jdg.messageflow.Tracer
 AT INVOKE org.jgroups.UpHandler.up
 IF TRUE
 DO
-  batchPush(org.jboss.qa.jdg.messageflow.MessageIdentifier33.getMessageIdentifier($msg));
+  batchPush(org.jboss.qa.jdg.messageflow.MessageIdentifier50.getMessageIdentifier($msg));
 ENDRULE
-
+###done
 RULE batchedMessageProcessingReceive
 CLASS org.jgroups.JChannel
 METHOD up(org.jgroups.util.MessageBatch)
@@ -164,7 +228,7 @@ HELPER org.jboss.qa.jdg.messageflow.Tracer
 AT INVOKE org.jgroups.Receiver.receive
 IF TRUE
 DO
-  batchPush(org.jboss.qa.jdg.messageflow.MessageIdentifier33.getMessageIdentifier($msg));
+  batchPush(org.jboss.qa.jdg.messageflow.MessageIdentifier50.getMessageIdentifier($msg));
 ENDRULE
 
 
@@ -199,7 +263,7 @@ HELPER org.jboss.qa.jdg.messageflow.Tracer
 AT INVOKE up(org.jgroups.Event) ALL
 IF TRUE
 DO
-  batchPush(org.jboss.qa.jdg.messageflow.MessageIdentifier33.getEventIdentifier($@[1]))
+  batchPush(org.jboss.qa.jdg.messageflow.MessageIdentifier50.getEventIdentifier($@[1]))
 ENDRULE
 
 
@@ -237,11 +301,13 @@ ENDRULE
 # UNICAST* #
 ############
 
+
+###Look for better way to inject this
 RULE UNICAST2_NonCausal
 CLASS org.jgroups.protocols.UNICAST2
 METHOD up(org.jgroups.Event)
 HELPER org.jboss.qa.jdg.messageflow.Tracer
-AT LINE 413
+AT LINE 418
 IF $hdr.type != 0 && $hdr.type != 4
 DO
   setNonCausal();
@@ -255,7 +321,7 @@ HELPER org.jboss.qa.jdg.messageflow.Tracer
 AT INVOKE sendAck
 IF TRUE
 DO
-  batchPush(org.jboss.qa.jdg.messageflow.MessageIdentifier33.getMessageIdentifier($msg))
+  batchPush(org.jboss.qa.jdg.messageflow.MessageIdentifier50.getMessageIdentifier($msg))
 ENDRULE
 
 RULE UNICAST2_SentAck
@@ -296,7 +362,7 @@ HELPER org.jboss.qa.jdg.messageflow.Tracer
 AT INVOKE org.jgroups.stack.Protocol.up(org.jgroups.Event) ALL
 IF TRUE
 DO
-  batchPush(org.jboss.qa.jdg.messageflow.MessageIdentifier33.getMessageIdentifier($msg));
+  batchPush(org.jboss.qa.jdg.messageflow.MessageIdentifier50.getMessageIdentifier($msg));
 ENDRULE
 
 RULE UNICAST2_BatchedOOBUpFinished
@@ -316,7 +382,7 @@ HELPER org.jboss.qa.jdg.messageflow.Tracer
 AT INVOKE org.jgroups.stack.Protocol.up
 IF TRUE
 DO
-  batchPush(org.jboss.qa.jdg.messageflow.MessageIdentifier33.getMessageIdentifier($msg));
+  batchPush(org.jboss.qa.jdg.messageflow.MessageIdentifier50.getMessageIdentifier($msg));
 ENDRULE
 
 RULE UNICAST_BatchedOOBUpFinished
@@ -331,17 +397,17 @@ ENDRULE
 
 RULE UNICAST3_BatchedOOBUpStart
 CLASS org.jgroups.protocols.UNICAST3
-METHOD handleBatchReceived
+METHOD deliverBatch
 HELPER org.jboss.qa.jdg.messageflow.Tracer
 AT INVOKE org.jgroups.stack.Protocol.up
 IF TRUE
 DO
-  batchPush(org.jboss.qa.jdg.messageflow.MessageIdentifier33.getMessageIdentifier($msg));
+  batchPush(org.jboss.qa.jdg.messageflow.MessageIdentifier50.getMessageIdentifier($msg));
 ENDRULE
 
 RULE UNICAST3_BatchedOOBUpFinished
 CLASS org.jgroups.protocols.UNICAST3
-METHOD handleBatchReceived
+METHOD deliverBatch
 HELPER org.jboss.qa.jdg.messageflow.Tracer
 AFTER INVOKE org.jgroups.stack.Protocol.up
 IF TRUE
@@ -363,9 +429,11 @@ DO
   setNonCausal();
 ENDRULE
 
+#fix
+#Changing method from removeAndPassUp to deliverBatch
 RULE NAKACK2_PassingUpBatch
 CLASS org.jgroups.protocols.pbcast.NAKACK2
-METHOD removeAndPassUp
+METHOD deliverBatch
 HELPER org.jboss.qa.jdg.messageflow.Tracer
 AT INVOKE org.jgroups.stack.Protocol.up(org.jgroups.util.MessageBatch) ALL
 IF TRUE
@@ -375,7 +443,7 @@ ENDRULE
 
 RULE NAKACK2_PassedUpBatch
 CLASS org.jgroups.protocols.pbcast.NAKACK2
-METHOD removeAndPassUp
+METHOD deliverBatch
 HELPER org.jboss.qa.jdg.messageflow.Tracer
 AFTER INVOKE org.jgroups.stack.Protocol.up(org.jgroups.util.MessageBatch) ALL
 IF TRUE
@@ -390,7 +458,7 @@ HELPER org.jboss.qa.jdg.messageflow.Tracer
 AT INVOKE up(org.jgroups.Event)
 IF TRUE
 DO
-  batchPush(org.jboss.qa.jdg.messageflow.MessageIdentifier33.getMessageIdentifier($msg));
+  batchPush(org.jboss.qa.jdg.messageflow.MessageIdentifier50.getMessageIdentifier($msg));
 ENDRULE
 
 RULE NAKACK2_BatchedUpFinished
@@ -427,6 +495,7 @@ DO
   msgTag("RSP_" + getMark($0.completed));
 ENDRULE
 
+### Not applied even in the old version
 RULE RequestFinalized
 CLASS org.jgroups.blocks.Request
 METHOD finalize
@@ -445,7 +514,7 @@ RULE Discovery
 CLASS org.jgroups.protocols.Discovery
 METHOD up
 HELPER org.jboss.qa.jdg.messageflow.Tracer
-AT LINE 383
+AT LINE 285
 IF TRUE
 DO
   msgTag("Discovery");
@@ -459,7 +528,7 @@ RULE FD_SOCK
 CLASS org.jgroups.protocols.FD_SOCK
 METHOD up
 HELPER org.jboss.qa.jdg.messageflow.Tracer
-AT LINE 206
+AT LINE 223
 IF TRUE
 DO
   msgTag("FD");
@@ -469,7 +538,7 @@ RULE FD_ALL
 CLASS org.jgroups.protocols.FD_ALL
 METHOD up
 HELPER org.jboss.qa.jdg.messageflow.Tracer
-AT LINE 171
+AT LINE 187
 IF TRUE
 DO
   msgTag("FD");
@@ -483,7 +552,7 @@ RULE VERIFY_SUSPECT
 CLASS org.jgroups.protocols.VERIFY_SUSPECT
 METHOD up
 HELPER org.jboss.qa.jdg.messageflow.Tracer
-AT LINE 115
+AT LINE 123
 IF TRUE
 DO
   msgTag("VERIFY");
@@ -497,7 +566,7 @@ RULE FlowControl_Request
 CLASS org.jgroups.protocols.FlowControl
 METHOD handleUpEvent
 HELPER org.jboss.qa.jdg.messageflow.Tracer
-AT LINE 415
+AT LINE 401
 IF TRUE
 DO
   msgTag("FC_Request");
@@ -507,7 +576,7 @@ RULE FlowControl_Replenish
 CLASS org.jgroups.protocols.FlowControl
 METHOD handleUpEvent
 HELPER org.jboss.qa.jdg.messageflow.Tracer
-AT LINE 411
+AT LINE 397
 IF TRUE
 DO
   msgTag("FC_Replenish");
@@ -520,7 +589,7 @@ HELPER org.jboss.qa.jdg.messageflow.Tracer
 AT INVOKE org.jgroups.protocols.FlowControl.handleUpEvent
 IF TRUE
 DO
-  batchPush(org.jboss.qa.jdg.messageflow.MessageIdentifier33.getMessageIdentifier($msg));
+  batchPush(org.jboss.qa.jdg.messageflow.MessageIdentifier50.getMessageIdentifier($msg));
 ENDRULE
 
 RULE FlowControl_BatchedHandleFinished
@@ -540,7 +609,7 @@ HELPER org.jboss.qa.jdg.messageflow.Tracer
 AT INVOKE org.jgroups.protocols.FC.handleUpEvent
 IF TRUE
 DO
-  batchPush(org.jboss.qa.jdg.messageflow.MessageIdentifier33.getMessageIdentifier($msg));
+  batchPush(org.jboss.qa.jdg.messageflow.MessageIdentifier50.getMessageIdentifier($msg));
 ENDRULE
 
 RULE FC_BatchedHandleFinished
@@ -562,7 +631,7 @@ RULE RSVP_ReqOnly
 CLASS org.jgroups.protocols.RSVP
 METHOD up
 HELPER org.jboss.qa.jdg.messageflow.Tracer
-AT LINE 175
+AT LINE 178
 IF TRUE
 DO
   msgTag("RSVP_ReqOnly");
@@ -572,7 +641,7 @@ RULE RSVP_Resp
 CLASS org.jgroups.protocols.RSVP
 METHOD up
 HELPER org.jboss.qa.jdg.messageflow.Tracer
-AT LINE 178
+AT LINE 181
 IF TRUE
 DO
   msgTag("RSVP_Resp");
@@ -589,7 +658,7 @@ HELPER org.jboss.qa.jdg.messageflow.Tracer
 AT INVOKE org.jgroups.protocols.relay.RELAY2.handleMessage
 IF TRUE
 DO
-  batchPush(org.jboss.qa.jdg.messageflow.MessageIdentifier33.getMessageIdentifier($msg));
+  batchPush(org.jboss.qa.jdg.messageflow.MessageIdentifier50.getMessageIdentifier($msg));
 ENDRULE
 
 RULE RELAY2_BatchedHandleFinished
@@ -609,7 +678,7 @@ HELPER org.jboss.qa.jdg.messageflow.Tracer
 AT INVOKE org.jgroups.protocols.relay.RELAY2.deliver
 IF TRUE
 DO
-  batchPush(org.jboss.qa.jdg.messageflow.MessageIdentifier33.getMessageIdentifier($msg));
+  batchPush(org.jboss.qa.jdg.messageflow.MessageIdentifier50.getMessageIdentifier($msg));
 ENDRULE
 
 RULE RELAY2_BatchedDeliverFinished
@@ -629,7 +698,7 @@ HELPER org.jboss.qa.jdg.messageflow.Tracer
 AT INVOKE org.jgroups.protocols.relay.RELAY.handleUpEvent
 IF TRUE
 DO
-  batchPush(org.jboss.qa.jdg.messageflow.MessageIdentifier33.getMessageIdentifier($msg));
+  batchPush(org.jboss.qa.jdg.messageflow.MessageIdentifier50.getMessageIdentifier($msg));
 ENDRULE
 
 RULE RELAY_BatchedHandleFinished
@@ -653,7 +722,7 @@ HELPER org.jboss.qa.jdg.messageflow.Tracer
 AT INVOKE handleUpEvent
 IF TRUE
 DO
-  batchPush(org.jboss.qa.jdg.messageflow.MessageIdentifier33.getMessageIdentifier($msg));
+  batchPush(org.jboss.qa.jdg.messageflow.MessageIdentifier50.getMessageIdentifier($msg));
 ENDRULE
 
 RULE STABLE_BatchedHandleFinished
