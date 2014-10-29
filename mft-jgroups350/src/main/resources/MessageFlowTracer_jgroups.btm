@@ -21,6 +21,7 @@ IF TRUE
 DO
   discardMessages(org.jboss.qa.jdg.messageflow.MessageIdentifier50.getDataIdentifiers($1));
 ENDRULE
+
 ### replacing dispatchData rule with dispatchDataBatch and dispatchDataSingleMessage
 RULE dispatchDataBatch
 CLASS org.jgroups.protocols.TP
@@ -41,6 +42,7 @@ IF TRUE
 DO
   forkSpan();
 ENDRULE
+
 ### replacing dataDispatched rule with dataDispatchedBatch and dataDispatchedSingleMessage
 RULE dataDispatchedBatch
 CLASS org.jgroups.protocols.TP
@@ -61,7 +63,7 @@ IF TRUE
 DO
   unforkSpan();
 ENDRULE
-###
+
 RULE incomingDispatchedBatch
 CLASS org.jgroups.protocols.TP
 METHOD handleMessageBatch
@@ -82,7 +84,6 @@ DO
   threadProcessingCompleted();
 ENDRULE
 
-###
 RULE dataProcessingSingle
 CLASS org.jgroups.protocols.TP$MyHandler
 METHOD run
@@ -103,6 +104,7 @@ DO
   forkSpan();
   handlingMessage(org.jboss.qa.jdg.messageflow.MessageIdentifier50.getMessageIdentifier($0.msg));
 ENDRULE
+
 ### Not applied even in the old version
 ### Modified to two rules
 RULE messageHandlingFinishedBatchNotEnabledSingleMessage
@@ -220,7 +222,7 @@ IF TRUE
 DO
   batchPush(org.jboss.qa.jdg.messageflow.MessageIdentifier50.getMessageIdentifier($msg));
 ENDRULE
-###done
+
 RULE batchedMessageProcessingReceive
 CLASS org.jgroups.JChannel
 METHOD up(org.jgroups.util.MessageBatch)

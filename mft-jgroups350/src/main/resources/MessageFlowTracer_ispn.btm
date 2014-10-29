@@ -109,7 +109,6 @@ DO
   destroyManagedContext();
 ENDRULE
 
-#TODO NEED TO REWRITE RULES BELLOW
 #Not applied in old version
 RULE beginTx_entry
 INTERFACE ^javax.transaction.TransactionManager
@@ -132,7 +131,6 @@ DO
    destroyManagedContext();
 ENDRULE
 
-#I can't find the injection point...
 RULE beginTx_jbossTM_entry
 CLASS ^com.arjuna.ats.internal.jta.transaction.arjunacore.BaseTransaction
 METHOD begin
@@ -238,8 +236,7 @@ IF TRUE
 DO
    destroyManagedContext();
 ENDRULE
-#TODO NEED TO REWRITE RULES ABOVE
-#Continuing here until I figure out the problem with the rules that are above
+
 RULE exceptionThrown
 CLASS org.infinispan.CacheImpl
 METHOD executeCommandAndCommitIfNeeded
@@ -255,7 +252,6 @@ ENDRULE
 # Locking #
 ###########
 
-#DONE
 RULE lock
 CLASS org.infinispan.util.concurrent.locks.LockManagerImpl
 METHOD lockAndRecord
