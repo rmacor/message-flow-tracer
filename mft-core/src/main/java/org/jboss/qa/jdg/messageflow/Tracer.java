@@ -257,6 +257,12 @@ public class Tracer {
 
    public void forkSpan() {
       Span current = contextSpan.get();
+
+       //This might be wrongly inserted in Byteman rules
+       if (current == null){
+           System.err.println("Possible problem with the rules: Invoking \"forkSpan\" with empty contextSpan");
+           return;
+       }
       Span child = new Span(current);
       contextSpan.set(child);
       //System.err.printf("%s start %08x %08x -> %08x\n", Thread.currentThread().getName(), contextAnnotation.get().hashCode(), current.hashCode(), child.hashCode());
@@ -269,6 +275,7 @@ public class Tracer {
 
    public BatchSpan startNewBatch() {
       Span current = contextSpan.get();
+
       BatchSpan batchSpan = BatchSpan.newOrphan(current);
       contextSpan.set(batchSpan);
       batchSpan.addEvent(Event.Type.BATCH_PROCESSING_START, null);
@@ -290,12 +297,23 @@ public class Tracer {
 
    public void handlingMessage(String messageId) {
       Span span = contextSpan.get();
+      //This might be wrongly inserted in Byteman rules
+      if (span == null){
+          System.err.println("Possible problem with the rules: Invoking \"handlingMessage\" with empty contextSpan");
+          return;
+      }
       span.addEvent(Event.Type.MSG_PROCESSING_START, messageId);
       span.setIncoming(messageId);
    }
 
    public void batchProcessingStart(List<String> messageIds) {
       Span current = contextSpan.get();
+       //This might be wrongly inserted in Byteman rules
+       if (current == null){
+           System.err.println("Possible problem with the rules: Invoking \"batchProcessingStart\" with empty contextSpan");
+           return;
+       }
+
       BatchSpan batchSpan = BatchSpan.newChild(current, messageIds);
       contextSpan.set(batchSpan);
       StringBuilder sb = new StringBuilder();
@@ -312,14 +330,29 @@ public class Tracer {
 
    private void switchToParent() {
       Span current = contextSpan.get();
-      if (current.getParent() == null) {
-         throw new IllegalStateException();
+
+       //This might be wrongly inserted in Byteman rules
+       if (current == null){
+           System.err.println("Possible problem with the rules: Invoking \"switchToParent\" with empty contextSpan");
+           return;
+       }
+
+       if (current.getParent() == null) {
+         throw new IllegalStateException("Current span has no parent");
       }
       contextSpan.set(current.getParent());
    }
 
    public void batchPush(String messageId) {
       Span current = contextSpan.get();
+
+
+       //This might be wrongly inserted in Byteman rules
+       if (current == null){
+           System.err.println("Possible problem with the rules: Invoking \"batchPush\" with empty contextSpan");
+           return;
+       }
+
       if (current instanceof BatchSpan) {
          ((BatchSpan) current).push(messageId);
       } else {
@@ -329,6 +362,13 @@ public class Tracer {
 
    public void batchPop() {
       Span current = contextSpan.get();
+
+       //This might be wrongly inserted in Byteman rules
+       if (current == null){
+           System.err.println("Possible problem with the rules: Invoking \"batchPop\" with empty contextSpan");
+           return;
+       }
+
       if (current instanceof BatchSpan) {
          ((BatchSpan) current).pop();
       } else {
@@ -348,6 +388,7 @@ public class Tracer {
 
    private Span ensureSpan() {
       Span span = contextSpan.get();
+
       if (span == null) {
          span = new Span();
          contextSpan.set(span);
@@ -394,6 +435,12 @@ public class Tracer {
 
    public void outcomingFinished() {
       Span span = contextSpan.get();
+
+       //This might be wrongly inserted in Byteman rules
+       if (span == null){
+           System.err.println("Possible problem with the rules: Invoking \"outcomingFinished\" with empty contextSpan");
+           return;
+       }
       span.addEvent(Event.Type.OUTCOMING_DATA_FINISHED, null);
       if (contextManaged.get() == null) {
          span.decrementRefCount(finishedSpans);
