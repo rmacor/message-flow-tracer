@@ -172,7 +172,9 @@ public class Span {
 
    public void setIncoming(String incoming) {
       if (this.incoming != null) {
-         throw new IllegalArgumentException("Cannot have two incoming messages!");
+         //throw new IllegalArgumentException("Cannot have two incoming messages!");
+          System.err.println("Cannot have two incoming messages. The current incoming message is " + this.incoming);
+          return;
       }
       this.incoming = incoming;
    }
