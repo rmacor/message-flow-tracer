@@ -25,7 +25,7 @@ import java.util.Map;
  */
 
 
-public class MessageIdentifier50 extends MessageIdentifier33 {
+public class MessageIdentifier35 extends MessageIdentifier33 {
 
 
     // type field was public in earlier version of jgroups
