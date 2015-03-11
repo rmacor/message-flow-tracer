@@ -11,6 +11,7 @@
       <module>mft-jgroups327</module>
       <module>mft-jgroups331</module>
        <module>mft-jgroups350</module>
+       <module>mft-jgroups361</module>
    </modules>
    <groupId>org.jboss.qa</groupId>
 
