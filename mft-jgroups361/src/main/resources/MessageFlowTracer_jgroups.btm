@@ -84,6 +84,7 @@ DO
   threadProcessingCompleted();
 ENDRULE
 
+#This is somehow causing NoClassDefFoundError: org/jgroups/util/ExposedByteArrayInputStream
 RULE dataProcessingSingle
 CLASS org.jgroups.protocols.TP$MyHandler
 METHOD run
