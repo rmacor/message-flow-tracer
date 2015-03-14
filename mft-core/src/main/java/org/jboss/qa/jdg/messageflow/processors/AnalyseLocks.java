@@ -65,7 +65,7 @@ public class AnalyseLocks implements Processor {
          if (e.text.startsWith("LOCK ")) {
             String key = getLockKey(e);
             Locking locking = lockings.get(key);
-            if (locking != null) throw new IllegalStateException();
+            if (locking != null) throw new IllegalStateException("The key already exists in lockings");
             locking = new Locking();
             lockings.put(key, locking);
             locking.lockAttempt = e;
@@ -76,7 +76,7 @@ public class AnalyseLocks implements Processor {
                      && other.text != null && other.text.startsWith("LOCK ")) {
                   String key = getLockKey(other);
                   Locking locking = lockings.get(key);
-                  if (locking == null) throw new IllegalStateException();
+                  if (locking == null) throw new IllegalStateException("The key already exists in lockings");
                   if (e.text.startsWith("LOCK_OK")) {
                      locking.lockOk = e;
                   } else {
@@ -91,7 +91,7 @@ public class AnalyseLocks implements Processor {
             int openBracket = e.text.indexOf('[');
             int closeBracket = e.text.indexOf(']');
             if (openBracket < 0 || closeBracket < 0 || openBracket >= closeBracket) {
-               throw new IllegalStateException();
+               throw new IllegalStateException("brackets don't match");
             }
             if (openBracket + 1 == closeBracket) continue;
 
@@ -99,7 +99,7 @@ public class AnalyseLocks implements Processor {
             for (String key : keys.split(",")) {
                Locking locking = lockings.remove(key.trim());
                if (locking == null) {
-                  throw new IllegalStateException(keys + ": " + key);
+                  throw new IllegalStateException("The key isn't in the lockings " + keys + ": " + key);
                }
                locking.unlock = e;
                finished.add(locking);
