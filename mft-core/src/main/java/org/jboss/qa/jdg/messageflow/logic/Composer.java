@@ -437,6 +437,11 @@ public class Composer extends Logic {
       }
    }
 
+    /**
+     * Sort trace and put into finishedTraces
+     * @param trace
+     * @throws InterruptedException
+     */
    private void retireTrace(Trace trace) throws InterruptedException {
       if (sortCausally) {
          try {

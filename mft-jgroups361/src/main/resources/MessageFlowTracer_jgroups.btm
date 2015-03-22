@@ -185,7 +185,7 @@ ENDRULE
 
 RULE sendMessageStart
 CLASS org.jgroups.protocols.TP
-METHOD send
+METHOD send(org.jgroups.Message, org.jgroups.Address)
 HELPER org.jboss.qa.jdg.messageflow.Tracer
 AT ENTRY
 IF TRUE
@@ -195,7 +195,7 @@ ENDRULE
 
 RULE sendMessageEnd
 CLASS org.jgroups.protocols.TP
-METHOD send
+METHOD send(org.jgroups.Message, org.jgroups.Address)
 HELPER org.jboss.qa.jdg.messageflow.Tracer
 AT EXIT
 IF TRUE
@@ -272,7 +272,8 @@ ENDRULE
 # Protocol (general) #
 ######################
 
-#TODO: consider using simply $1
+#This rule is only triggered in Protocol and FD
+#There is no injection point in DISCARD, ProtocolStack, TP, Frag
 RULE Protocol_batchedUpStart
 CLASS ^org.jgroups.stack.Protocol
 METHOD up(org.jgroups.util.MessageBatch)
@@ -283,7 +284,8 @@ DO
   batchPush(org.jboss.qa.jdg.messageflow.MessageIdentifier361.getEventIdentifier($@[1]))
 ENDRULE
 
-
+#This rule is only triggered in Protocol and FD
+#There is no injection point in DISCARD, ProtocolStack, TP, Frag
 RULE Protocol_batchedUpFinished
 CLASS ^org.jgroups.stack.Protocol
 METHOD up(org.jgroups.util.MessageBatch)
@@ -392,6 +394,7 @@ DO
   batchPop();
 ENDRULE
 
+#Depricated in JGroups 3.6
 RULE UNICAST_BatchedOOBUpStart
 CLASS org.jgroups.protocols.UNICAST
 METHOD handleBatchReceived
@@ -402,6 +405,7 @@ DO
   batchPush(org.jboss.qa.jdg.messageflow.MessageIdentifier361.getMessageIdentifier($msg));
 ENDRULE
 
+#Depricated in JGroups 3.6
 RULE UNICAST_BatchedOOBUpFinished
 CLASS org.jgroups.protocols.UNICAST
 METHOD handleBatchReceived
@@ -412,6 +416,65 @@ DO
   batchPop();
 ENDRULE
 
+###########
+# UNICAST3 #
+###########
+
+
+###Look for better way to inject this
+RULE UNICAST3_NonCausal
+CLASS org.jgroups.protocols.UNICAST3
+METHOD up(org.jgroups.Event)
+HELPER org.jboss.qa.jdg.messageflow.Tracer
+AT LINE 419
+IF $hdr.type != 0 && $hdr.type != 4
+DO
+  setNonCausal();
+  msgTag("UNICAST3");
+ENDRULE
+
+#TODO: deal with ACK
+RULE UNICAST3_SendingAck
+CLASS org.jgroups.protocols.UNICAST3
+METHOD handleBatchReceived
+HELPER org.jboss.qa.jdg.messageflow.Tracer
+AT INVOKE sendAck
+IF TRUE
+DO
+  batchPush(org.jboss.qa.jdg.messageflow.MessageIdentifier361.getMessageIdentifier($win.first()))
+ENDRULE
+
+RULE UNICAST3_SentAck
+CLASS org.jgroups.protocols.UNICAST3
+METHOD handleBatchReceived
+HELPER org.jboss.qa.jdg.messageflow.Tracer
+AFTER INVOKE sendAck
+IF TRUE
+DO
+  batchPop();
+ENDRULE
+
+
+RULE UNICAST3_PassingUpBatch
+CLASS org.jgroups.protocols.UNICAST3
+METHOD deliverBatch
+HELPER org.jboss.qa.jdg.messageflow.Tracer
+AT INVOKE org.jgroups.stack.Protocol.up(org.jgroups.util.MessageBatch) ALL
+IF TRUE
+DO
+  startNewBatch();
+ENDRULE
+
+RULE UNICAST3_PassedUpBatch
+CLASS org.jgroups.protocols.UNICAST3
+METHOD deliverBatch
+HELPER org.jboss.qa.jdg.messageflow.Tracer
+AFTER INVOKE org.jgroups.stack.Protocol.up(org.jgroups.util.MessageBatch) ALL
+IF TRUE
+DO
+  endNewBatch();
+ENDRULE
+
 RULE UNICAST3_BatchedOOBUpStart
 CLASS org.jgroups.protocols.UNICAST3
 METHOD deliverBatch
@@ -419,7 +482,7 @@ HELPER org.jboss.qa.jdg.messageflow.Tracer
 AT INVOKE org.jgroups.stack.Protocol.up
 IF TRUE
 DO
-  batchPush(org.jboss.qa.jdg.messageflow.MessageIdentifier361.getMessageIdentifier($msg));
+  batchPush(org.jboss.qa.jdg.messageflow.MessageIdentifier361.getMessageIdentifier($first));
 ENDRULE
 
 RULE UNICAST3_BatchedOOBUpFinished
@@ -431,6 +494,28 @@ IF TRUE
 DO
   batchPop();
 ENDRULE
+
+#################################################
+
+#RULE UNICAST3_BatchedOOBUpStart
+#CLASS org.jgroups.protocols.UNICAST3
+#METHOD deliverBatch
+#HELPER org.jboss.qa.jdg.messageflow.Tracer
+#AT INVOKE org.jgroups.stack.Protocol.up
+#IF TRUE
+#DO
+#  batchPush(org.jboss.qa.jdg.messageflow.MessageIdentifier361.getMessageIdentifier($msg));
+#ENDRULE
+
+#RULE UNICAST3_BatchedOOBUpFinished
+#CLASS org.jgroups.protocols.UNICAST3
+#METHOD deliverBatch
+#HELPER org.jboss.qa.jdg.messageflow.Tracer
+#AFTER INVOKE org.jgroups.stack.Protocol.up
+#IF TRUE
+#DO
+#  batchPop();
+#ENDRULE
 
 ###########
 # NAKACK2 #
