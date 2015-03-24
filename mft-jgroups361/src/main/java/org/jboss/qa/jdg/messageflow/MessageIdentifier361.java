@@ -1,7 +1,11 @@
 package org.jboss.qa.jdg.messageflow;
 
 import org.jgroups.Address;
+import org.jgroups.Header;
 import org.jgroups.Message;
+import org.jgroups.protocols.*;
+import org.jgroups.protocols.pbcast.NakAckHeader2;
+import org.jgroups.protocols.pbcast.STABLE;
 import org.jgroups.util.ByteArrayDataInputStream;
 import org.jgroups.util.Util;
 
@@ -10,12 +14,47 @@ import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Created by rmacor on 3/10/15.
  */
 public class MessageIdentifier361 extends MessageIdentifier35{
 
+    //Unicast3 doesn't have type Header.type in JGroups 3.5...
+    public static String getMessageIdentifier(Message msg) {
+        Map<Short, Header> headers = msg.getHeaders();
+
+        UNICAST3.Header unicast3header = (UNICAST3.Header) headers.get((short) 64);
+        if (unicast3header != null) {
+            return String.format("%s|%s|U%d:%d", msg.getSrc(), msg.getDest(), unicast3header.type(), unicast3header.seqno());
+        }
+        UNICAST2.Unicast2Header unicast2header = (UNICAST2.Unicast2Header) headers.get((short) 40);
+        if (unicast2header != null) {
+            return String.format("%s|%s|U%d:%d", msg.getSrc(), msg.getDest(), unicast2header.getType(), unicast2header.getSeqno());
+        }
+        NakAckHeader2 nakAckHeader2 = (NakAckHeader2) headers.get((short) 57);
+        if (nakAckHeader2 != null) {
+            return String.format("%s|M%d:%d", msg.getSrc(), nakAckHeader2.getType(), nakAckHeader2.getSeqno());
+        }
+        FD_ALL.HeartbeatHeader fdHeader = (FD_ALL.HeartbeatHeader) headers.get((short) 29);
+        if (fdHeader != null) {
+            return String.format("%s|FD_ALL%d", msg.getSrc(), System.currentTimeMillis() / 1000);
+        }
+        STABLE.StableHeader stableHeader = (STABLE.StableHeader) headers.get((short) 16);
+        if (stableHeader != null) {
+            return String.format("%s|STABLE%d", msg.getSrc(), System.currentTimeMillis() / 1000);
+        }
+        PingHeader pingHeader = (PingHeader) headers.get((short) 6);
+        if (pingHeader != null) {
+            return String.format("%s|PING%d:%d", msg.getSrc(), pingHeader.type(), System.currentTimeMillis() / 1000);
+        }
+        FD_SOCK.FdHeader fdSockHeader = (FD_SOCK.FdHeader) headers.get((short) 3);
+        if (fdSockHeader != null) {
+            return String.format("%s|%s|FD_SOCK:%d", msg.getSrc(), msg.getDest(), System.currentTimeMillis() / 1000);
+        }
+        return String.format("%s|%s|%s", msg.getSrc(), msg.getDest(), msg.printHeaders());
+    }
     //Replacing ExposedInputStream with ByteArrayStream
     //TODO: need to be backported to MessageIdentifier35
     public static List<String> getDataIdentifiers(Runnable r) {
