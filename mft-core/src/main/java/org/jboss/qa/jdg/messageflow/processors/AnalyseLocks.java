@@ -47,6 +47,7 @@ public class AnalyseLocks implements Processor {
    private AvgMinMax failAcquireTime = new AvgMinMax();
    private AvgMinMax lockHeldTime = new AvgMinMax();
 
+    private Map<String, Locking> lockings = new HashMap<String, Locking>();
    private static class Locking {
       Event lockAttempt;
       Event lockOk;
@@ -56,7 +57,7 @@ public class AnalyseLocks implements Processor {
 
    @Override
    public void process(Trace trace, long traceCounter) {
-      Map<String, Locking> lockings = new HashMap<String, Locking>();
+      //Map<String, Locking> lockings = new HashMap<String, Locking>();
       Set<Locking> finished = new HashSet<Locking>();
       Event[] events = trace.events.toArray(new Event[0]);
       for (int i = 0; i < events.length; ++i) {
@@ -122,8 +123,10 @@ public class AnalyseLocks implements Processor {
          lockingTraces.add(finished.size());
       }
       if (!lockings.isEmpty()) {
-         throw new IllegalStateException("Not unlocked: " + lockings.keySet());
+         //throw new IllegalStateException("Not unlocked: " + lockings.keySet());
+         //System.err.println("Lockings is not empty at the end of the trace");
       }
+
    }
 
    private String getLockKey(Event e) {
@@ -132,6 +135,10 @@ public class AnalyseLocks implements Processor {
 
    @Override
    public void finish() {
+
+       if (!lockings.isEmpty()) {
+           throw new IllegalStateException("Not unlocked: " + lockings.keySet());
+       }
       out.println("\n*********");
       out.println("* LOCKS *");
       out.println("*********");
