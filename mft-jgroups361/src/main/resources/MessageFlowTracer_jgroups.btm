@@ -482,7 +482,7 @@ HELPER org.jboss.qa.jdg.messageflow.Tracer
 AT INVOKE org.jgroups.stack.Protocol.up
 IF TRUE
 DO
-  batchPush(org.jboss.qa.jdg.messageflow.MessageIdentifier361.getMessageIdentifier($first));
+  batchPush(org.jboss.qa.jdg.messageflow.MessageIdentifier361.getMessageIdentifier($batch.first()));
 ENDRULE
 
 RULE UNICAST3_BatchedOOBUpFinished
@@ -494,28 +494,6 @@ IF TRUE
 DO
   batchPop();
 ENDRULE
-
-#################################################
-
-#RULE UNICAST3_BatchedOOBUpStart
-#CLASS org.jgroups.protocols.UNICAST3
-#METHOD deliverBatch
-#HELPER org.jboss.qa.jdg.messageflow.Tracer
-#AT INVOKE org.jgroups.stack.Protocol.up
-#IF TRUE
-#DO
-#  batchPush(org.jboss.qa.jdg.messageflow.MessageIdentifier361.getMessageIdentifier($msg));
-#ENDRULE
-
-#RULE UNICAST3_BatchedOOBUpFinished
-#CLASS org.jgroups.protocols.UNICAST3
-#METHOD deliverBatch
-#HELPER org.jboss.qa.jdg.messageflow.Tracer
-#AFTER INVOKE org.jgroups.stack.Protocol.up
-#IF TRUE
-#DO
-#  batchPop();
-#ENDRULE
 
 ###########
 # NAKACK2 #
