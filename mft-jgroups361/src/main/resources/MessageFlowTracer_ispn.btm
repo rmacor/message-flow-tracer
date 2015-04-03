@@ -109,6 +109,10 @@ DO
   destroyManagedContext();
 ENDRULE
 
+###########
+# Transactions #
+###########
+
 #Not applied in old version
 #TODO find out why this isn't inserted
 RULE beginTx_entry

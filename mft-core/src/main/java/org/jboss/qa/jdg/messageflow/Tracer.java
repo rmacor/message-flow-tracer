@@ -386,6 +386,10 @@ public class Tracer {
       }
    }
 
+    /***
+     *
+     * @return The current span, or creates new one and set it in contextSpan
+     */
    private Span ensureSpan() {
       Span span = contextSpan.get();
 
@@ -461,6 +465,9 @@ public class Tracer {
     * @param message
     */
    public void checkpoint(String message) {
+      if (contextSpan.get() == null) {
+          System.err.println("No span in checkpoint for: " + message);
+      }
       ensureSpan().addEvent(Event.Type.CHECKPOINT, message);
    }
 

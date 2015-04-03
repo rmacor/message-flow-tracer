@@ -1,4 +1,4 @@
-/*
+       /*
  * JBoss, Home of Professional Open Source.
  * Copyright 2013, Red Hat Middleware LLC, and individual contributors
  * as indicated by the @author tags. See the copyright.txt file in the
@@ -83,6 +83,9 @@ public class Span {
       outcoming.add(identifier);
    }
 
+    /**
+     * Increase counter in parent span, if it doesn't have a parent increase counter it this span.
+     */
    public void incrementRefCount() {
       if (parent != null) {
          parent.incrementRefCount();
@@ -93,7 +96,10 @@ public class Span {
          //System.err.printf("INC %08x -> %d\n", this.hashCode(), counter);
       }
    }
-
+    /**
+     * Decrement counter in parent span, if it doesn't have a parent increase counter it this span.
+     * If counter is zero pass to finished
+     */
    public void decrementRefCount(Queue<Span> finishedSpans) {
       if (parent != null) {
          parent.decrementRefCount(finishedSpans);
@@ -121,6 +127,10 @@ public class Span {
       out.println("<End children>");
    }
 
+    /**
+     * add events, incoming and outcomming messages from parent, pass children to finished spans
+     * @param finishedSpans
+     */
    private void passToFinished(Queue<Span> finishedSpans) {
 //      synchronized (debugSpans) {
 //         debugSpans.remove(this);

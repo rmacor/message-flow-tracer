@@ -158,6 +158,10 @@ public class Composer extends Logic {
          }
       }
 
+       /**
+        * Counts messages and establishes sequence of messages.
+        * @throws IOException
+        */
       private void read() throws IOException {
          BufferedReader reader = new BufferedReader(new FileReader(file));
 
@@ -415,6 +419,11 @@ public class Composer extends Logic {
          return trace;
       }
 
+       /**
+        * retire trace and remove all the trace references from the traces map
+        * if merge counter is not possitive and if messages from this trace are no it messageReferences
+        * @param trace
+        */
       private void tryRetire(Trace trace) {
          if (trace == null) return;
          try {
