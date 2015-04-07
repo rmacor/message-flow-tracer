@@ -23,10 +23,7 @@
 package org.jboss.qa.jdg.messageflow.processors;
 
 import java.io.PrintStream;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import org.jboss.qa.jdg.messageflow.objects.Event;
 import org.jboss.qa.jdg.messageflow.objects.Trace;
@@ -48,15 +45,21 @@ public class AnalyseLocks implements Processor {
    private AvgMinMax lockHeldTime = new AvgMinMax();
 
     private Map<String, Locking> lockings = new HashMap<String, Locking>();
+
+    private List<Trace> traces = new ArrayList<Trace>();
    private static class Locking {
       Event lockAttempt;
       Event lockOk;
       Event lockFail;
       Event unlock;
    }
+   private String inspectedKey = "";
 
    @Override
-   public void process(Trace trace, long traceCounter) {
+   public void process(Trace trace, long traceCounter){
+        traces.add(trace);
+   }
+   public void actual_process(Trace trace, long traceCounter) {
       //Map<String, Locking> lockings = new HashMap<String, Locking>();
       Set<Locking> finished = new HashSet<Locking>();
       Event[] events = trace.events.toArray(new Event[0]);
@@ -66,9 +69,12 @@ public class AnalyseLocks implements Processor {
          if (e.text.startsWith("LOCK ")) {
             String key = getLockKey(e);
             Locking locking = lockings.get(key);
-            if (locking != null) throw new IllegalStateException("The key already exists in lockings. key: " + key);
+            if (locking != null) throw new IllegalStateException("The key already exists in lockings. key: " + key  + " time: " + e.nanoTime);
             locking = new Locking();
             lockings.put(key, locking);
+            if (key.equals(inspectedKey)){
+                System.out.println("Putting key into lockings key: " + key + " timestamp:" + e.nanoTime + " corrected timestamp: " + e.correctedTimestamp);
+            }
             locking.lockAttempt = e;
          } else if (e.text.startsWith("LOCK_OK") || e.text.startsWith("LOCK_FAIL")) {
             for (int j = i - 1; j >= 0; --j) {
@@ -83,6 +89,9 @@ public class AnalyseLocks implements Processor {
                   } else {
                      locking.lockFail = e;
                      lockings.remove(key);
+                      if (key.equals(inspectedKey)){
+                          System.out.println("Removing key from lockings key (LOCK FAILED): " + key + " timestamp:" + e.nanoTime + " corrected timestamp: " + e.correctedTimestamp);
+                      }
                      finished.add(locking);
                   }
                   break;
@@ -99,8 +108,11 @@ public class AnalyseLocks implements Processor {
             String keys = e.text.substring(openBracket + 1, closeBracket);
             for (String key : keys.split(",")) {
                Locking locking = lockings.remove(key.trim());
+                if (key.equals(inspectedKey)){
+                    System.out.println("Removing key from lockings key (UNLOCK): " + key + " timestamp:" + e.nanoTime + " corrected timestamp: " + e.correctedTimestamp);
+                }
                if (locking == null) {
-                  throw new IllegalStateException("Trying to unlock: The key isn't in the lockings " + keys + ": " + key);
+                  throw new IllegalStateException("Trying to unlock: The key isn't in the lockings " + key + " time: " + e.nanoTime);
                }
                locking.unlock = e;
                finished.add(locking);
@@ -135,6 +147,10 @@ public class AnalyseLocks implements Processor {
 
    @Override
    public void finish() {
+        sortTraces();
+        for (int i = 0; i < traces.size(); i++){
+            actual_process(traces.get(i),0);
+        }
 
        if (!lockings.isEmpty()) {
            throw new IllegalStateException("Not unlocked: " + lockings.keySet());
@@ -157,4 +173,13 @@ public class AnalyseLocks implements Processor {
       out.printf("Lock is held for %.2f us (%.2f - %.2f)\n",
                  lockHeldTime.avg() / 1000d, lockHeldTime.min() / 1000d, lockHeldTime.max() / 1000d);
    }
+
+    private void sortTraces() {
+        Collections.sort(traces, new Comparator<Trace>() {
+            @Override
+            public int compare(Trace o1, Trace o2) {
+                return o1.events.get(0).timestamp.compareTo(o2.events.get(0).timestamp);
+            }
+        });
+    }
 }
