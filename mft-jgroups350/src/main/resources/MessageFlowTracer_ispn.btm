@@ -1,5 +1,5 @@
 RULE putInternal_entry
-CLASS org.infinispan.CacheImpl
+CLASS org.infinispan.cache.impl.CacheImpl
 METHOD putInternal
 HELPER org.jboss.qa.jdg.messageflow.Tracer
 AT ENTRY
@@ -11,7 +11,7 @@ DO
 ENDRULE
 
 RULE putInternal_exit
-CLASS org.infinispan.CacheImpl
+CLASS org.infinispan.cache.impl.CacheImpl
 METHOD putInternal
 HELPER org.jboss.qa.jdg.messageflow.Tracer
 AT EXIT
@@ -22,7 +22,7 @@ DO
 ENDRULE
 
 RULE putAllInternal_entry
-CLASS org.infinispan.CacheImpl
+CLASS org.infinispan.cache.impl.CacheImpl
 METHOD putAllInternal
 HELPER org.jboss.qa.jdg.messageflow.Tracer
 AT ENTRY
@@ -33,7 +33,7 @@ DO
 ENDRULE
 
 RULE putAllInternal_exit
-CLASS org.infinispan.CacheImpl
+CLASS org.infinispan.cache.impl.CacheImpl
 METHOD putAllInternal
 HELPER org.jboss.qa.jdg.messageflow.Tracer
 AT EXIT
@@ -44,7 +44,7 @@ DO
 ENDRULE
 
 RULE removeInternal_entry
-CLASS org.infinispan.CacheImpl
+CLASS org.infinispan.cache.impl.CacheImpl
 METHOD removeInternal
 HELPER org.jboss.qa.jdg.messageflow.Tracer
 AT ENTRY
@@ -55,7 +55,7 @@ DO
 ENDRULE
 
 RULE removeInternal_exit
-CLASS org.infinispan.CacheImpl
+CLASS org.infinispan.cache.impl.CacheImpl
 METHOD removeInternal
 HELPER org.jboss.qa.jdg.messageflow.Tracer
 AT ENTRY
@@ -66,7 +66,7 @@ DO
 ENDRULE
 
 RULE get_entry
-CLASS org.infinispan.CacheImpl
+CLASS org.infinispan.cache.impl.CacheImpl
 METHOD get(java.lang.Object)
 HELPER org.jboss.qa.jdg.messageflow.Tracer
 AT ENTRY
@@ -77,7 +77,7 @@ DO
 ENDRULE
 
 RULE get_exit
-CLASS org.infinispan.CacheImpl
+CLASS org.infinispan.cache.impl.CacheImpl
 METHOD get(java.lang.Object)
 HELPER org.jboss.qa.jdg.messageflow.Tracer
 AT EXIT
@@ -88,7 +88,7 @@ DO
 ENDRULE
 
 RULE getAsync_entry
-CLASS org.infinispan.CacheImpl
+CLASS org.infinispan.cache.impl.CacheImpl
 METHOD getAsync(java.lang.Object)
 HELPER org.jboss.qa.jdg.messageflow.Tracer
 AT ENTRY
@@ -99,7 +99,7 @@ DO
 ENDRULE
 
 RULE getAsync_exit
-CLASS org.infinispan.CacheImpl
+CLASS org.infinispan.cache.impl.CacheImpl
 METHOD getAsync(java.lang.Object)
 HELPER org.jboss.qa.jdg.messageflow.Tracer
 AT EXIT
@@ -109,7 +109,10 @@ DO
   destroyManagedContext();
 ENDRULE
 
-#Not applied in old version
+###########
+# Transactions #
+###########
+
 RULE beginTx_entry
 INTERFACE ^javax.transaction.TransactionManager
 METHOD begin
@@ -120,7 +123,7 @@ DO
    createManagedContext();
    traceTag("BEGIN_TX");
 ENDRULE
-#Not applied
+
 RULE beginTx_exit
 INTERFACE ^javax.transaction.TransactionManager
 METHOD begin
