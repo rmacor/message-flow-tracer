@@ -241,7 +241,7 @@ DO
 ENDRULE
 
 RULE exceptionThrown
-CLASS org.infinispan.CacheImpl
+CLASS org.infinispan.cache.impl.CacheImpl
 METHOD executeCommandAndCommitIfNeeded
 HELPER org.jboss.qa.jdg.messageflow.Tracer
 AT THROW ALL

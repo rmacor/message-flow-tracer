@@ -113,8 +113,6 @@ ENDRULE
 # Transactions #
 ###########
 
-#Not applied in old version
-#TODO find out why this isn't inserted
 RULE beginTx_entry
 INTERFACE ^javax.transaction.TransactionManager
 METHOD begin
@@ -125,8 +123,7 @@ DO
    createManagedContext();
    traceTag("BEGIN_TX");
 ENDRULE
-#Not applied
-#TODO find out why this isn't inserted
+
 RULE beginTx_exit
 INTERFACE ^javax.transaction.TransactionManager
 METHOD begin
@@ -244,7 +241,7 @@ DO
 ENDRULE
 
 RULE exceptionThrown
-CLASS org.infinispan.CacheImpl
+CLASS org.infinispan.cache.impl.CacheImpl
 METHOD executeCommandAndCommitIfNeeded
 HELPER org.jboss.qa.jdg.messageflow.Tracer
 AT THROW ALL

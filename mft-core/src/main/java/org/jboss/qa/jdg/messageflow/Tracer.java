@@ -22,10 +22,7 @@
 
 package org.jboss.qa.jdg.messageflow;
 
-import java.io.BufferedOutputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.PrintStream;
+import java.io.*;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -57,31 +54,78 @@ public class Tracer {
    private static volatile boolean running = true;
 
    static {
-      Thread writer = new Thread() {
+      final Thread writer = new Thread() {
          @Override
          public void run() {
             String path = System.getProperty("org.jboss.qa.messageflowtracer.output");
+            boolean binarySpans = System.getProperty("org.jboss.qa.messageflowtracer.binarySpans") != null ? true : false;
+            System.err.println("binary spans: " + binarySpans);
             if (path == null) path = "/tmp/span.txt";
-            PrintStream writer = null;
-            try {
-               writer = new PrintStream(new BufferedOutputStream(new FileOutputStream(path)));
-               writer.printf("%d=%d\n", System.nanoTime(), System.currentTimeMillis());
-               while (running || !finishedSpans.isEmpty()) {
-                  Span span;
-                  while ((span = finishedSpans.poll()) != null) {
-                     span.writeTo(writer, false);
+
+            if (binarySpans){
+               ObjectOutputStream oStream = null;
+               try {
+
+                  oStream = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(path)));
+                  System.out.println("Output stream opened!");
+
+                  oStream.writeLong(System.nanoTime());
+                  oStream.writeLong(System.currentTimeMillis());
+
+                  while (running || !finishedSpans.isEmpty()) {
+                     Span span;
+                     while ((span = finishedSpans.poll()) != null) {
+                        span.binaryWriteTo(oStream, false);
+                        oStream.reset();
+                     }
+                     try {
+                        Thread.sleep(10);
+                     } catch (InterruptedException e) {
+                        break;
+                     }
+                     //oStream.reset();
+
                   }
-                  try {
-                     Thread.sleep(10);
-                  } catch (InterruptedException e) {
-                     break;
+                  //oStream.flush();
+               } catch (IOException e) {
+                  e.printStackTrace();
+               } finally {
+                  if (oStream != null) {
+                     try {
+                        oStream.close();
+                        System.out.println("Output stream closed!");
+                        //oStream = null;
+                        //System.gc();
+                     } catch (IOException e) {
+                        e.printStackTrace();
+                     }
+                  }
+                  synchronized (Tracer.class) {
+                     Tracer.class.notifyAll();
                   }
                }
-            } catch (FileNotFoundException e) {
-            } finally {
-               if (writer != null) writer.close();
-               synchronized (Tracer.class) {
-                  Tracer.class.notifyAll();
+            }else {
+               PrintStream writer = null;
+               try {
+                  writer = new PrintStream(new BufferedOutputStream(new FileOutputStream(path)));
+                  writer.printf("%d=%d\n", System.nanoTime(), System.currentTimeMillis());
+                  while (running || !finishedSpans.isEmpty()) {
+                     Span span;
+                     while ((span = finishedSpans.poll()) != null) {
+                        span.writeTo(writer, false);
+                     }
+                     try {
+                        Thread.sleep(10);
+                     } catch (InterruptedException e) {
+                        break;
+                     }
+                  }
+               } catch (FileNotFoundException e) {
+               } finally {
+                  if (writer != null) writer.close();
+                  synchronized (Tracer.class) {
+                     Tracer.class.notifyAll();
+                  }
                }
             }
          }

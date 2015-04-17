@@ -22,7 +22,7 @@
 
 package org.jboss.qa.jdg.messageflow.objects;
 
-import java.io.PrintStream;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -37,12 +37,12 @@ import java.util.Set;
 *
 * @author Radim Vansa &lt;rvansa@redhat.com&gt;
 */
-public class Span {
-   private final Span parent;
+public class Span implements Serializable {
+   private final transient Span parent;
    private String incoming;
    private Set<String> outcoming;
    private Set<LocalEvent> events = new HashSet<LocalEvent>();
-   protected List<Span> children = new ArrayList<Span>();
+   protected transient List<Span> children = new ArrayList<Span>();
 
    private int counter = 1;
    private boolean nonCausal;
@@ -97,7 +97,7 @@ public class Span {
       }
    }
     /**
-     * Decrement counter in parent span, if it doesn't have a parent increase counter it this span.
+     * Decrement counter in parent span, if it doesn't have a parent decrement counter it this span.
      * If counter is zero pass to finished
      */
    public void decrementRefCount(Queue<Span> finishedSpans) {
@@ -189,6 +189,17 @@ public class Span {
       this.incoming = incoming;
    }
 
+   //TODO: sorting needs to be implemented
+   public synchronized void binaryWriteTo(ObjectOutputStream stream, boolean sort){
+
+         try {
+
+            stream.writeObject(this);
+         } catch (IOException e) {
+            e.printStackTrace();
+         }
+   }
+
    public synchronized void writeTo(PrintStream stream, boolean sort) {
       if (isNonCausal()) {
          stream.print(Trace.NON_CAUSAL);
@@ -238,6 +249,23 @@ public class Span {
       return lastTag == null ? null : lastTag.text;
    }
 
+   public Set<String> getMessages() {
+      Set<String> messages = new HashSet<>();
+      if (incoming != null)
+         messages.add(incoming);
+      if (outcoming != null){
+         for (String msg : outcoming) {
+            if (outcoming != null)
+               messages.add(msg);
+         }
+      }
+      return messages;
+   }
+
+   public Set<LocalEvent> getEvents() {
+      return events;
+   }
+
    /* Debugging only */
    public String getTraceTag() {
       for (LocalEvent event : events) {
@@ -251,8 +279,33 @@ public class Span {
    public Span getCurrent() {
       return this;
    }
+   @Override
+   public String toString(){
+      StringBuilder sb = new StringBuilder();
+      sb.append(nonCausal ? "SPAN: nonCasual" : "SPAN: casual");
+      sb.append(" Incoming: " + incoming);
+      if (outcoming != null){
+         for (String message : outcoming){
+            sb.append(" Outcomming: " + message);
+         }
+      }
+      if (events != null){
+         sb.append(System.lineSeparator());
+         sb.append("Events:");
+         sb.append(System.lineSeparator());
+         for (LocalEvent event : events){
+            sb.append(" timestamp: " + event.timestamp);
+            sb.append(" threadName: " + event.threadName);
+            sb.append(" type: " + event.type);
+            sb.append(" text: " + event.text);
+            sb.append(System.lineSeparator());
+         }
+      }
 
-   private static class LocalEvent implements Comparable<LocalEvent> {
+      return sb.toString();
+   }
+   // TODO: can this be public?
+   public static class LocalEvent implements Comparable<LocalEvent>, Serializable {
       public long timestamp;
       public String threadName;
       public Event.Type type;
@@ -266,9 +319,11 @@ public class Span {
          this.text = text;
       }
 
-      @Override
+      //@Override
       public int compareTo(LocalEvent o) {
          return Long.compare(timestamp, o.timestamp);
       }
+
    }
+
 }

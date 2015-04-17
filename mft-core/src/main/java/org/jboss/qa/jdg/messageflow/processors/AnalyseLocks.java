@@ -44,7 +44,7 @@ public class AnalyseLocks implements Processor {
    private AvgMinMax failAcquireTime = new AvgMinMax();
    private AvgMinMax lockHeldTime = new AvgMinMax();
 
-    private Map<String, Locking> lockings = new HashMap<String, Locking>();
+    //private Map<String, Locking> lockings = new HashMap<String, Locking>();
 
     private List<Trace> traces = new ArrayList<Trace>();
    private static class Locking {
@@ -56,11 +56,13 @@ public class AnalyseLocks implements Processor {
    private String inspectedKey = "";
 
    @Override
-   public void process(Trace trace, long traceCounter){
+   /*public void process(Trace trace, long traceCounter){
         traces.add(trace);
    }
-   public void actual_process(Trace trace, long traceCounter) {
-      //Map<String, Locking> lockings = new HashMap<String, Locking>();
+   */
+
+   public void process(Trace trace, long traceCounter) {
+      Map<String, Locking> lockings = new HashMap<String, Locking>();
       Set<Locking> finished = new HashSet<Locking>();
       Event[] events = trace.events.toArray(new Event[0]);
       for (int i = 0; i < events.length; ++i) {
@@ -136,7 +138,7 @@ public class AnalyseLocks implements Processor {
       }
       if (!lockings.isEmpty()) {
          //throw new IllegalStateException("Not unlocked: " + lockings.keySet());
-         //System.err.println("Lockings is not empty at the end of the trace");
+         System.err.println("Lockings is not empty at the end of the trace");
       }
 
    }
@@ -147,14 +149,14 @@ public class AnalyseLocks implements Processor {
 
    @Override
    public void finish() {
-        sortTraces();
+  /*      sortTraces();
         for (int i = 0; i < traces.size(); i++){
             actual_process(traces.get(i),0);
         }
-
-       if (!lockings.isEmpty()) {
-           throw new IllegalStateException("Not unlocked: " + lockings.keySet());
-       }
+*/
+    //   if (!lockings.isEmpty()) {
+      //     throw new IllegalStateException("Not unlocked: " + lockings.keySet());
+     //  }
       out.println("\n*********");
       out.println("* LOCKS *");
       out.println("*********");

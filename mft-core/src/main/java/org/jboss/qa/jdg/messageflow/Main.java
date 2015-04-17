@@ -78,7 +78,10 @@ public class Main {
                return;
             }
             composer.setMaxAdvanceMillis(Long.parseLong(args[++i]));
-         } else if (args[i].startsWith("-")) {
+         } else if (args[i].equals("-b")) {
+            Composer.binarySpans = true;
+         }
+         else if (args[i].startsWith("-")) {
             System.err.println("Unknown option " + args[i]);
             printUsage();
             return;

@@ -185,7 +185,8 @@ ENDRULE
 
 RULE sendMessageStart
 CLASS org.jgroups.protocols.TP
-METHOD send(org.jgroups.Message, org.jgroups.Address)
+#METHOD send(org.jgroups.Message, org.jgroups.Address)
+METHOD send
 HELPER org.jboss.qa.jdg.messageflow.Tracer
 AT ENTRY
 IF TRUE
@@ -195,7 +196,8 @@ ENDRULE
 
 RULE sendMessageEnd
 CLASS org.jgroups.protocols.TP
-METHOD send(org.jgroups.Message, org.jgroups.Address)
+#METHOD send(org.jgroups.Message, org.jgroups.Address)
+METHOD send
 HELPER org.jboss.qa.jdg.messageflow.Tracer
 AT EXIT
 IF TRUE
@@ -433,7 +435,6 @@ DO
   msgTag("UNICAST3");
 ENDRULE
 
-#TODO: deal with ACK
 RULE UNICAST3_SendingAck
 CLASS org.jgroups.protocols.UNICAST3
 METHOD handleBatchReceived
