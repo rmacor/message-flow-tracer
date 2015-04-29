@@ -63,47 +63,42 @@ public class Tracer {
             if (path == null) path = "/tmp/span.txt";
 
             if (binarySpans){
-               ObjectOutputStream oStream = null;
-               try {
+                  //without java serialization
+                  DataOutputStream dOStream = null;
 
-                  oStream = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(path)));
-                  System.out.println("Output stream opened!");
+                  try {
+                     dOStream = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(path)));
 
-                  oStream.writeLong(System.nanoTime());
-                  oStream.writeLong(System.currentTimeMillis());
+                     dOStream.writeLong(System.nanoTime());
+                     dOStream.writeLong(System.currentTimeMillis());
 
-                  while (running || !finishedSpans.isEmpty()) {
-                     Span span;
-                     while ((span = finishedSpans.poll()) != null) {
-                        span.binaryWriteTo(oStream, false);
-                        oStream.reset();
+                     while (running || !finishedSpans.isEmpty()) {
+                        Span span;
+                        while ((span = finishedSpans.poll()) != null) {
+                           span.binaryWriteTo(dOStream, false);
+                           }
+                        try {
+                           Thread.sleep(10);
+                        } catch (InterruptedException e) {
+                           break;
+                        }
                      }
-                     try {
-                        Thread.sleep(10);
-                     } catch (InterruptedException e) {
-                        break;
-                     }
-                     //oStream.reset();
 
-                  }
-                  //oStream.flush();
-               } catch (IOException e) {
-                  e.printStackTrace();
-               } finally {
-                  if (oStream != null) {
-                     try {
-                        oStream.close();
-                        System.out.println("Output stream closed!");
-                        //oStream = null;
-                        //System.gc();
-                     } catch (IOException e) {
-                        e.printStackTrace();
+                  } catch (IOException e) {
+                     e.printStackTrace();
+                  } finally {
+                     if (dOStream != null) {
+                        try {
+                           dOStream.close();
+                        } catch (IOException e) {
+                           e.printStackTrace();
+                        }
+                     }
+                     synchronized (Tracer.class) {
+                        Tracer.class.notifyAll();
                      }
                   }
-                  synchronized (Tracer.class) {
-                     Tracer.class.notifyAll();
-                  }
-               }
+
             }else {
                PrintStream writer = null;
                try {
@@ -510,7 +505,7 @@ public class Tracer {
     */
    public void checkpoint(String message) {
       if (contextSpan.get() == null) {
-          System.err.println("No span in checkpoint for: " + message);
+        //  System.err.println("No span in checkpoint for: " + message);
       }
       ensureSpan().addEvent(Event.Type.CHECKPOINT, message);
    }

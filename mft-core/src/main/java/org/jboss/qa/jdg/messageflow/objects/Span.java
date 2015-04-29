@@ -171,6 +171,9 @@ public class Span implements Serializable {
    public synchronized void addEvent(Event.Type type, String text) {
       events.add(new LocalEvent(type, text));
    }
+   public void addEvent(LocalEvent event){
+      events.add(event);
+   }
 
    public void setNonCausal() {
       this.nonCausal = true;
@@ -191,15 +194,56 @@ public class Span implements Serializable {
 
    //TODO: sorting needs to be implemented
    public synchronized void binaryWriteTo(ObjectOutputStream stream, boolean sort){
-
          try {
-
-            stream.writeObject(this);
+           stream.writeObject(this);
          } catch (IOException e) {
             e.printStackTrace();
          }
    }
 
+   public synchronized void binaryWriteTo(DataOutputStream stream, boolean sort){
+
+      try {
+         stream.writeBoolean(isNonCausal());
+         if (incoming != null){
+            stream.writeUTF(incoming);
+         }else{
+            stream.writeUTF("");
+         }
+
+         int outcommingCount = outcoming != null ? outcoming.size() : 0;
+         stream.writeShort(outcommingCount);
+         if (outcoming != null){
+            for (String message : outcoming){
+               stream.writeUTF(message);
+            }
+         }
+         int eventCount = events != null ? events.size() : 0;
+         stream.writeShort(eventCount);
+         if (events != null){
+            Collection<LocalEvent> events = this.events;
+            if (sort) {
+               LocalEvent[] array = events.toArray(new LocalEvent[events.size()]);
+               Arrays.sort(array);
+               events = Arrays.asList(array);
+            }
+            //TODO: create map for the threadname to store less data
+            for (LocalEvent event : events){
+               stream.writeLong(event.timestamp);
+               stream.writeUTF(event.threadName);
+               //stream.writeShort(5);
+
+               stream.writeShort(event.type.ordinal());
+               //stream.writeUTF(event.type.toString());
+               stream.writeUTF(event.text == null ? "" : event.text);
+            }
+
+         }
+
+      } catch (IOException e) {
+         e.printStackTrace();
+      }
+   }
    public synchronized void writeTo(PrintStream stream, boolean sort) {
       if (isNonCausal()) {
          stream.print(Trace.NON_CAUSAL);
@@ -312,6 +356,7 @@ public class Span implements Serializable {
       public String text;
 
 
+      public LocalEvent(){};
       private LocalEvent(Event.Type type, String text) {
          this.timestamp = System.nanoTime();
          this.threadName = Thread.currentThread().getName();
