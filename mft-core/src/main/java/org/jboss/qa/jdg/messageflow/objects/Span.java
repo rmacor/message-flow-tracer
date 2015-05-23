@@ -93,7 +93,6 @@ public class Span implements Serializable {
       }
       synchronized (this) {
          counter++;
-         //System.err.printf("INC %08x -> %d\n", this.hashCode(), counter);
       }
    }
     /**
@@ -107,11 +106,9 @@ public class Span implements Serializable {
       }
       synchronized (this) {
          counter--;
-         //System.err.printf("DEC %08x -> %d\n", this.hashCode(), counter);
          if (counter == 0) {
             passToFinished(finishedSpans);
          } else if (counter < 0) {
-            //writeWithChildren(System.err);
             throw new IllegalStateException();
          }
       }
@@ -132,9 +129,6 @@ public class Span implements Serializable {
      * @param finishedSpans
      */
    private void passToFinished(Queue<Span> finishedSpans) {
-//      synchronized (debugSpans) {
-//         debugSpans.remove(this);
-//      }
       if (parent != null) {
          if (parent == this) {
             throw new IllegalStateException();
@@ -192,7 +186,13 @@ public class Span implements Serializable {
       this.incoming = incoming;
    }
 
-   //TODO: sorting needs to be implemented
+   /**
+    * Writes span to output stream in binary format rather than plain text for performance improvement
+    * It uses Java serialization which is inefficient
+    * Sort is not implemented
+    * @param stream output stream
+    * @param sort not implemented
+    */
    public synchronized void binaryWriteTo(ObjectOutputStream stream, boolean sort){
          try {
            stream.writeObject(this);
@@ -201,6 +201,11 @@ public class Span implements Serializable {
          }
    }
 
+   /**
+    * Writes span to output stream in binary format rather than plain text for performance improvement
+    * @param stream output stream
+    * @param sort whether to sort events
+    */
    public synchronized void binaryWriteTo(DataOutputStream stream, boolean sort){
 
       try {
@@ -227,14 +232,10 @@ public class Span implements Serializable {
                Arrays.sort(array);
                events = Arrays.asList(array);
             }
-            //TODO: create map for the threadname to store less data
             for (LocalEvent event : events){
                stream.writeLong(event.timestamp);
                stream.writeUTF(event.threadName);
-               //stream.writeShort(5);
-
                stream.writeShort(event.type.ordinal());
-               //stream.writeUTF(event.type.toString());
                stream.writeUTF(event.text == null ? "" : event.text);
             }
 
@@ -244,6 +245,11 @@ public class Span implements Serializable {
          e.printStackTrace();
       }
    }
+   /**
+    * Writes span to output stream in text format.
+    * @param stream output stream
+    * @param sort whether to sort events
+    */
    public synchronized void writeTo(PrintStream stream, boolean sort) {
       if (isNonCausal()) {
          stream.print(Trace.NON_CAUSAL);
@@ -348,7 +354,6 @@ public class Span implements Serializable {
 
       return sb.toString();
    }
-   // TODO: can this be public?
    public static class LocalEvent implements Comparable<LocalEvent>, Serializable {
       public long timestamp;
       public String threadName;

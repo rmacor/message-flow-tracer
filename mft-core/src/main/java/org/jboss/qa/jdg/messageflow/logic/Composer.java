@@ -59,7 +59,6 @@ public class Composer extends Logic {
    private int totalMessages;
    private boolean sortCausally = true;
    private long maxAdvanceMillis = 10000;
-   //boolean binarySpans = System.getProperty("org.jboss.qa.messageflowtracer.binarySpans") != null ? true : false;
    public static boolean binarySpans = false;
    public Composer() {
    }
@@ -218,7 +217,6 @@ public class Composer extends Logic {
             }
          }
          stream.close();
-         //System.err.printf("Read %d message references (in first pass)\n", messageReferences.size());
       }
    }
 
@@ -655,6 +653,13 @@ public class Composer extends Logic {
          this.finished = true;
       }
    }
+
+   /**
+    * Reads span from binary file
+    * @param stream input stream to read data
+    * @return span from the stream
+    * @throws IOException
+    */
    public Span readSpan(DataInputStream stream) throws IOException {
       Span span = new Span();
 

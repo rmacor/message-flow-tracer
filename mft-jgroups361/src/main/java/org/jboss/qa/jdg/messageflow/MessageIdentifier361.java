@@ -56,7 +56,6 @@ public class MessageIdentifier361 extends MessageIdentifier35{
         return String.format("%s|%s|%s", msg.getSrc(), msg.getDest(), msg.printHeaders());
     }
     //Replacing ExposedInputStream with ByteArrayStream
-    //TODO: need to be backported to MessageIdentifier35
     public static List<String> getDataIdentifiers(Runnable r) {
         try {
             Class<?> clazz = r.getClass();
@@ -88,13 +87,10 @@ public class MessageIdentifier361 extends MessageIdentifier35{
         int length = (Integer) lengthField.get(r);
         return unmarshall(buf, offset, length);
     }
-    //TODO: should ByteArrayDataInputStream be closed?
     private static List<String> unmarshall(byte[] buf, int offset, int length) {
         short                        version;
         byte                         flags;
-        //ExposedByteArrayInputStream in_stream;
         DataInput in_stream;// = null;
-        //DataInputStream dis=null;
         try {
             in_stream=new ByteArrayDataInputStream(buf, offset, length);
             version=in_stream.readShort();

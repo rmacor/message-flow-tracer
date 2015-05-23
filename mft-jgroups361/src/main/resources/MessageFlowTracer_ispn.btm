@@ -6,7 +6,6 @@ AT ENTRY
 IF TRUE
 DO
   createManagedContext();
-#  traceTag("PUT" + $key);
   traceTag("PUT");
 ENDRULE
 
@@ -166,7 +165,6 @@ DO
    traceTag("COMMIT_TX");
 ENDRULE
 
-# not working when commit fails with exception
 RULE commitTx_exit
 INTERFACE ^javax.transaction.TransactionManager
 METHOD commit
@@ -262,7 +260,6 @@ HELPER org.jboss.qa.jdg.messageflow.Tracer
 AT ENTRY
 IF TRUE
 DO
-#  checkpoint("LOCK");
   checkpoint("LOCK " + $1);
 ENDRULE
 
@@ -293,7 +290,6 @@ HELPER org.jboss.qa.jdg.messageflow.Tracer
 AT EXIT
 IF TRUE
 DO
-#  checkpoint("UNLOCK ");
   checkpoint("UNLOCK " + $1);
 ENDRULE
 
@@ -304,7 +300,6 @@ HELPER org.jboss.qa.jdg.messageflow.Tracer
 AT ENTRY
 IF TRUE
 DO
-#  checkpoint("UNLOCK_ALL");
   checkpoint("UNLOCK_ALL " + $1.getLockedKeys());
 ENDRULE
 
